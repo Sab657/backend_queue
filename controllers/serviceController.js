@@ -44,7 +44,8 @@ const createService = async (req, res, next) => {
   try {
     // Generate a unique URL/id for the service
     const serviceId = uuidv4();
-    const qrCodeUrl = `${process.env.QR_BASE_URL}/${serviceId}`;
+    const baseUrl = `http://${process.env.HOST || '192.168.1.68'}:${process.env.PORT || 3001}`;
+    const qrCodeUrl = `${baseUrl}/api/queues/join/${serviceId}`;
 
     const service = await Service.create({
       ...req.body,
@@ -89,7 +90,8 @@ const updateService = async (req, res, next) => {
 
     // If name changes, regenerate QR code
     if (req.body.name) {
-      const qrCodeData = await QRCode.toDataURL(`${process.env.QR_BASE_URL}/${service.serviceId || service._id}`);
+      const baseUrl = `http://${process.env.HOST || '192.168.1.68'}:${process.env.PORT || 3001}`;
+      const qrCodeData = await QRCode.toDataURL(`${baseUrl}/api/queues/join/${service.serviceId || service._id}`);
       service.qrCode = qrCodeData;
     }
 

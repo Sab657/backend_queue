@@ -47,7 +47,8 @@ const serviceSchema = new mongoose.Schema({
 // Generate QR code URL before saving
 serviceSchema.pre('save', function(next) {
   if (this.isNew || this.isModified('name')) {
-    this.qrCodeUrl = `${process.env.QR_BASE_URL}/${this._id}`;
+    const baseUrl = `http://${process.env.HOST || '192.168.1.68'}:${process.env.PORT || 3001}`;
+    this.qrCodeUrl = `${baseUrl}/api/queues/join/${this._id}`;
   }
   next();
 });
