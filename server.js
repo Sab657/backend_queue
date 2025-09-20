@@ -46,7 +46,7 @@ app.get('/api/health', (req, res) => {
     status: 'OK',
     message: 'QR Queuing System API is running',
     timestamp: new Date().toISOString(),
-    baseUrl: `http://${process.env.HOST || '192.168.1.68'}:${process.env.PORT || 3000}`
+    baseUrl: `http://${process.env.HOST || '192.168.1.68'}:${process.env.PORT || 3001}`
   });
 });
 
@@ -67,7 +67,7 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '192.168.1.68';
 
 server.listen(PORT, HOST, () => {
