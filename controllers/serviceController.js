@@ -44,8 +44,10 @@ const createService = async (req, res, next) => {
   try {
     // Generate a unique URL/id for the service
     const serviceId = uuidv4();
-    const baseUrl = `http://${process.env.HOST || '192.168.1.68'}:${process.env.PORT || 3001}`;
-    const qrCodeUrl = `${baseUrl}/api/queues/join/${serviceId}`;
+    // FRONTEND_BASE_URL should point to your frontend domain in production
+    // e.g., https://frontend-queue.onrender.com
+    const frontendBase = process.env.FRONTEND_BASE_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3001');
+    const qrCodeUrl = frontendBase ? `${frontendBase}/queue/${serviceId}` : '';
 
     const service = await Service.create({
       ...req.body,
@@ -90,9 +92,12 @@ const updateService = async (req, res, next) => {
 
     // If name changes, regenerate QR code
     if (req.body.name) {
-      const baseUrl = `http://${process.env.HOST || '192.168.1.68'}:${process.env.PORT || 3001}`;
-      const qrCodeData = await QRCode.toDataURL(`${baseUrl}/api/queues/join/${service.serviceId || service._id}`);
+      const frontendBase = process.env.FRONTEND_BASE_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3001');
+      const targetId = service.serviceId || service._id;
+      const qrTarget = frontendBase ? `${frontendBase}/queue/${targetId}` : '';
+      const qrCodeData = await QRCode.toDataURL(qrTarget);
       service.qrCode = qrCodeData;
+      service.qrCodeUrl = qrTarget;
     }
 
     await service.save();
