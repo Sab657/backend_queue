@@ -1,6 +1,7 @@
 const Queue = require('../models/Queue');
 const Service = require('../models/Service');
 const moment = require('moment');
+const mongoose = require('mongoose');
 
 // Join queue via QR code scan
 const joinQueue = async (req, res, next) => {
@@ -8,8 +9,15 @@ const joinQueue = async (req, res, next) => {
     const { serviceId } = req.params;
     const { customerName, customerPhone, priority = 'normal' } = req.body;
 
-    // Verify service exists and is active
-    const service = await Service.findById(serviceId);
+    // Resolve service from either Mongo ObjectId or legacy UUID stored in serviceId field
+    let service = null;
+    if (mongoose.Types.ObjectId.isValid(serviceId)) {
+      service = await Service.findById(serviceId);
+    }
+    if (!service) {
+      service = await Service.findOne({ serviceId });
+    }
+
     if (!service || !service.isActive) {
       return res.status(404).json({
         success: false,
@@ -18,11 +26,11 @@ const joinQueue = async (req, res, next) => {
     }
 
     // Get next queue number
-    const queueNumber = await Queue.getNextQueueNumber(serviceId);
+    const queueNumber = await Queue.getNextQueueNumber(service._id);
 
     // Create queue entry
     const queueEntry = await Queue.create({
-      service: serviceId,
+      service: service._id,
       queueNumber,
       customerName,
       customerPhone,
@@ -32,7 +40,7 @@ const joinQueue = async (req, res, next) => {
     await queueEntry.populate('service');
 
     // Emit real-time update
-    req.io.to(`queue_${serviceId}`).emit('queueUpdate', {
+    req.io.to(`queue_${service._id}`).emit('queueUpdate', {
       type: 'NEW_QUEUE',
       data: queueEntry
     });

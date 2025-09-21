@@ -1,7 +1,6 @@
 const Service = require('../models/Service');
 const Queue = require('../models/Queue');
 const QRCode = require('qrcode');
-const { v4: uuidv4 } = require('uuid');
 
 // Get all services
 const getAllServices = async (req, res, next) => {
@@ -18,10 +17,17 @@ const getAllServices = async (req, res, next) => {
   }
 };
 
-// Get service by ID
+// Get service by ID (supports Mongo _id or legacy UUID in serviceId field)
 const getServiceById = async (req, res, next) => {
   try {
-    const service = await Service.findById(req.params.id);
+    const rawId = req.params.id;
+    let service = null;
+    if (require('mongoose').Types.ObjectId.isValid(rawId)) {
+      service = await Service.findById(rawId);
+    }
+    if (!service) {
+      service = await Service.findOne({ serviceId: rawId });
+    }
 
     if (!service) {
       return res.status(404).json({
@@ -42,23 +48,21 @@ const getServiceById = async (req, res, next) => {
 // Create new service
 const createService = async (req, res, next) => {
   try {
-    // Generate a unique URL/id for the service
-    const serviceId = uuidv4();
     // Resolve frontend base URL from env or request origin/host
     // Prefer explicit env; fallback to request origin (from frontend) or current host
     const origin = req.get('origin');
     const hostUrl = `${req.protocol}://${req.get('host')}`;
     const frontendBase = process.env.FRONTEND_BASE_URL || origin || hostUrl || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3001');
-    const qrCodeUrl = `${frontendBase}/queue/${serviceId}`;
-
+    
+    // Create service first to get Mongo _id
     const service = await Service.create({
       ...req.body,
-      serviceId,
-      qrCodeUrl
     });
 
-    // Generate QR code image
+    // Build QR URL using Mongo _id
+    const qrCodeUrl = `${frontendBase}/queue/${service._id}`;
     const qrCodeData = await QRCode.toDataURL(qrCodeUrl);
+    service.qrCodeUrl = qrCodeUrl;
     service.qrCode = qrCodeData;
     await service.save();
 
@@ -97,8 +101,7 @@ const updateService = async (req, res, next) => {
       const origin = req.get('origin');
       const hostUrl = `${req.protocol}://${req.get('host')}`;
       const frontendBase = process.env.FRONTEND_BASE_URL || origin || hostUrl || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3001');
-      const targetId = service.serviceId || service._id;
-      const qrTarget = `${frontendBase}/queue/${targetId}`;
+      const qrTarget = `${frontendBase}/queue/${service._id}`;
       const qrCodeData = await QRCode.toDataURL(qrTarget);
       service.qrCode = qrCodeData;
       service.qrCodeUrl = qrTarget;
