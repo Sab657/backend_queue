@@ -44,10 +44,12 @@ const createService = async (req, res, next) => {
   try {
     // Generate a unique URL/id for the service
     const serviceId = uuidv4();
-    // FRONTEND_BASE_URL should point to your frontend domain in production
-    // e.g., https://frontend-queue.onrender.com
-    const frontendBase = process.env.FRONTEND_BASE_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3001');
-    const qrCodeUrl = frontendBase ? `${frontendBase}/queue/${serviceId}` : '';
+    // Resolve frontend base URL from env or request origin/host
+    // Prefer explicit env; fallback to request origin (from frontend) or current host
+    const origin = req.get('origin');
+    const hostUrl = `${req.protocol}://${req.get('host')}`;
+    const frontendBase = process.env.FRONTEND_BASE_URL || origin || hostUrl || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3001');
+    const qrCodeUrl = `${frontendBase}/queue/${serviceId}`;
 
     const service = await Service.create({
       ...req.body,
@@ -92,9 +94,11 @@ const updateService = async (req, res, next) => {
 
     // If name changes, regenerate QR code
     if (req.body.name) {
-      const frontendBase = process.env.FRONTEND_BASE_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3001');
+      const origin = req.get('origin');
+      const hostUrl = `${req.protocol}://${req.get('host')}`;
+      const frontendBase = process.env.FRONTEND_BASE_URL || origin || hostUrl || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3001');
       const targetId = service.serviceId || service._id;
-      const qrTarget = frontendBase ? `${frontendBase}/queue/${targetId}` : '';
+      const qrTarget = `${frontendBase}/queue/${targetId}`;
       const qrCodeData = await QRCode.toDataURL(qrTarget);
       service.qrCode = qrCodeData;
       service.qrCodeUrl = qrTarget;

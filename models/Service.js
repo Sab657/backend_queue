@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const serviceSchema = new mongoose.Schema({
+  serviceId: {
+    type: String,
+    index: true, // optional external identifier
+  },
   name: {
     type: String,
     required: [true, 'Service name is required'],
@@ -42,15 +46,6 @@ const serviceSchema = new mongoose.Schema({
   }
 }, {
   timestamps: true
-});
-
-// Generate QR code URL before saving
-serviceSchema.pre('save', function(next) {
-  if (this.isNew || this.isModified('name')) {
-    const baseUrl = `http://${process.env.HOST || '192.168.1.68'}:${process.env.PORT || 3001}`;
-    this.qrCodeUrl = `${baseUrl}/api/queues/join/${this._id}`;
-  }
-  next();
 });
 
 // Virtual for current queue count
