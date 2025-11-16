@@ -24,7 +24,7 @@ const seedAdmins = async () => {
     const defaultAdmins = [
       {
         username: 'admin',
-        password: '@dmin_12345678', // <-- pre('save') will hash this
+        password: 'admin123', // <-- pre('save') will hash this
         role: 'admin',
       },
     ];
