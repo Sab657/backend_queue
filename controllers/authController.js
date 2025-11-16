@@ -90,43 +90,6 @@ const getAdminProfile = async (req, res, next) => {
   }
 };
 
-// Change admin password
-const changePassword = async (req, res, next) => {
-  try {
-    const { currentPassword, newPassword } = req.body;
-
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide current password and new password'
-      });
-    }
-
-    const admin = await Admin.findById(req.admin.id).select('+password');
-
-    // Verify current password
-    const isCurrentPasswordValid = await admin.comparePassword(currentPassword);
-
-    if (!isCurrentPasswordValid) {
-      return res.status(400).json({
-        success: false,
-        message: 'Current password is incorrect'
-      });
-    }
-
-    // Update password
-    admin.password = newPassword;
-    await admin.save();
-
-    res.status(200).json({
-      success: true,
-      message: 'Password changed successfully'
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
 // Admin logout (client-side token removal)
 const adminLogout = async (req, res, next) => {
   try {
@@ -142,6 +105,5 @@ const adminLogout = async (req, res, next) => {
 module.exports = {
   adminLogin,
   getAdminProfile,
-  changePassword,
   adminLogout
 };

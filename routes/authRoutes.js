@@ -2,7 +2,6 @@ const express = require('express');
 const {
   adminLogin,
   getAdminProfile,
-  changePassword,
   adminLogout
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
@@ -17,7 +16,6 @@ router.post('/login', validateAuth.validateLogin, adminLogin);
 router.use(protect); // All routes below this middleware are protected
 
 router.get('/profile', getAdminProfile);
-router.put('/change-password', validateAuth.validatePasswordChange, changePassword);
 router.post('/logout', adminLogout);
 
 module.exports = router;
