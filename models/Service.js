@@ -54,7 +54,7 @@ serviceSchema.virtual('currentQueueCount', {
   localField: '_id',
   foreignField: 'service',
   count: true,
-  match: { status: { $in: ['waiting', 'called'] } }
+  match: { status: { $in: ['waiting', 'called', 'serving'] } } // include 'serving' if desired
 });
 
 serviceSchema.set('toJSON', { virtuals: true });

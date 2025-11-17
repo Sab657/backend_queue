@@ -5,7 +5,9 @@ const QRCode = require('qrcode');
 // Get all services
 const getAllServices = async (req, res, next) => {
   try {
-    const services = await Service.find({ isActive: true }).sort({ name: 1 });
+    const services = await Service.find({ isActive: true })
+      .sort({ name: 1 })
+      .populate('currentQueueCount'); // <-- add this
 
     res.status(200).json({
       success: true,
