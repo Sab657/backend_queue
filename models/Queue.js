@@ -1,10 +1,17 @@
 const mongoose = require('mongoose');
+const moment = require('moment');
 
 const queueSchema = new mongoose.Schema({
   service: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Service',
     required: [true, 'Service is required']
+  },
+  // The logical day this ticket belongs to (YYYY-MM-DD)
+  queueDate: {
+    type: String,
+    required: true,
+    index: true
   },
   queueNumber: {
     type: Number,
@@ -62,7 +69,17 @@ const queueSchema = new mongoose.Schema({
 
 // Index for efficient queries
 queueSchema.index({ service: 1, status: 1, joinedAt: 1 });
-queueSchema.index({ queueNumber: 1, service: 1 }, { unique: true });
+// Ensure uniqueness per service per day
+queueSchema.index({ service: 1, queueDate: 1, queueNumber: 1 }, { unique: true });
+
+// Set queueDate based on joinedAt or current time
+queueSchema.pre('validate', function(next) {
+  if (!this.queueDate) {
+    const base = this.joinedAt ? moment(this.joinedAt) : moment();
+    this.queueDate = base.format('YYYY-MM-DD');
+  }
+  next();
+});
 
 // Calculate estimated wait time before saving
 queueSchema.pre('save', async function(next) {
@@ -87,13 +104,14 @@ queueSchema.pre('save', async function(next) {
   next();
 });
 
-// Static method to get next queue number
+// Static method to get next queue number (per service, per day)
 queueSchema.statics.getNextQueueNumber = async function(serviceId) {
-  const lastQueue = await this.findOne({ service: serviceId })
+  const today = moment().format('YYYY-MM-DD');
+  const lastQueueToday = await this.findOne({ service: serviceId, queueDate: today })
     .sort({ queueNumber: -1 })
     .lean();
-  
-  return lastQueue ? lastQueue.queueNumber + 1 : 1;
+
+  return lastQueueToday ? lastQueueToday.queueNumber + 1 : 1;
 };
 
 // Instance method to update status with timestamp
